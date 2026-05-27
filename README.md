@@ -377,6 +377,86 @@ echo "Jenkins Admin Password:"
 docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
+### **Step 7: Setup Jenkins Container**
+# Jenkins may run into docker group mismatch issue, so here is the fix
+
+```
+#!/bin/bash
+
+echo "=== Fixing Docker Permission Issue ==="
+
+# Get host Docker group ID
+DOCKER_GID=$(getent group docker | cut -d: -f3)
+echo "Host Docker GID: $DOCKER_GID"
+
+# Stop and remove existing Jenkins
+docker stop jenkins 2>/dev/null || true
+docker rm jenkins 2>/dev/null || true
+
+# Create a Dockerfile for Jenkins with correct GID
+cat > Dockerfile.jenkins << EOF
+FROM jenkins/jenkins:lts-jdk17
+
+USER root
+
+# Install Maven
+RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
+
+# Create docker group with host's GID
+RUN groupadd -g $DOCKER_GID docker
+
+# Add jenkins user to docker group
+RUN usermod -aG docker jenkins
+
+# Verify setup
+RUN id jenkins
+
+USER jenkins
+EOF
+
+# Build custom Jenkins image
+echo "Building custom Jenkins image..."
+docker build -f Dockerfile.jenkins -t jenkins-custom:latest .
+
+# Run Jenkins with custom image
+echo "Starting Jenkins container..."
+docker run -d \
+  --name jenkins \
+  --restart unless-stopped \
+  -p 8081:8080 \
+  -p 50000:50000 \
+  -v jenkins_home:/var/jenkins_home \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v $(which docker):/usr/bin/docker \
+  jenkins-custom:latest
+
+# Wait for Jenkins to start
+echo "Waiting for Jenkins to start..."
+sleep 20
+
+# Get initial admin password
+echo ""
+echo "=== Jenkins Admin Password ==="
+docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+echo ""
+echo "================================"
+
+# Test Docker access
+echo ""
+echo "Testing Docker access from Jenkins..."
+docker exec jenkins docker ps
+
+if [ $? -eq 0 ]; then
+    echo "✅ Docker access successful!"
+else
+    echo "❌ Docker access still failing. Trying alternative fix..."
+    
+    # Alternative: Fix socket permissions
+    sudo chmod 666 /var/run/docker.sock
+    docker exec jenkins docker ps && echo "✅ Fixed with socket permissions"
+fi
+```
+
 ### **Step 8: Install Maven in Jenkins**
 
 ```bash

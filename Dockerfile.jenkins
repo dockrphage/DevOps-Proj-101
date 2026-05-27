@@ -1,0 +1,17 @@
+FROM jenkins/jenkins:lts-jdk17
+
+USER root
+
+# Install Maven
+RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
+
+# Create docker group with host's GID
+RUN groupadd -g 984 docker
+
+# Add jenkins user to docker group
+RUN usermod -aG docker jenkins
+
+# Verify setup
+RUN id jenkins
+
+USER jenkins
