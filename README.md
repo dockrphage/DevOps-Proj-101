@@ -1,4 +1,4 @@
-Excellent decision! Starting over with a clean slate will help you master the process and create great documentation for your interview. Here's a **complete, battle-tested guide** based on everything we learned.
+
 
 ## Part 1: Complete Cleanup Script (for cleanup post execution)
 
@@ -377,8 +377,8 @@ echo "Jenkins Admin Password:"
 docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
-### **Step 7: Setup Jenkins Container**
-# Jenkins may run into docker group mismatch issue, so here is the fix
+### **Step 7b: Setup Jenkins Container** (use this instead of 7)
+ Jenkins may run into docker group mismatch issue, so here is the fix
 
 ```
 #!/bin/bash
@@ -457,7 +457,8 @@ else
 fi
 ```
 
-### **Step 8: Install Maven in Jenkins**
+### **Step 8: Install Maven in Jenkins** 
+This step is no longer required as we cover this in 7b
 
 ```bash
 # Install Maven as root
